@@ -1,0 +1,41 @@
+version: "3"
+
+x-uffizzi:
+  ingress:
+    service: kards-social
+    port: 12000
+
+services:
+  db:
+    image: surrealdb/surrealdb
+    ports:
+      - 12001:12001
+    command: 
+      - "start" 
+      - "--user" 
+      - "root" 
+      - "--pass" 
+      - "root" 
+      - "--bind" 
+      - "0.0.0.0:12001"
+      - "file:dev.db"
+  kards-social:
+    image: "${APP_IMAGE}"
+    ports: 
+      - 12000:12000
+    deploy:
+      resources:
+        limits:
+          memory: 1000M
+    entrypoint: "/bin/sh"
+    command:
+    - "-c"
+    - "cd app && NEXT_PUBLIC_SURREAL_ENDPOINT='$${UFFIZZI_URL}/surrealdb' NEXT_PUBLIC_SURREAL_NAMESPACE='kards-deployment_local' NEXT_PUBLIC_SURREAL_DATABASE='kards-social' npm run dev"
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+    - "8081:8081"
+    volumes:
+    - ./.github/uffizzi/nginx:/etc/nginx
+
